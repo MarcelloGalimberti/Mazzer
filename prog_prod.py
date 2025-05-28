@@ -88,6 +88,14 @@ df_raw["ADDETTO PROD"] = df_raw["ADDETTO PROD"].fillna("NON ASSEGNATO")
 # sotto LT
 df_raw['Sotto LT'] = np.where(df_raw['CONSEGNA CLIENTE PIANIFICATA'] < df_raw['VERIFICA LT'],True,False)
 
+df_monday = df_raw.copy()
+
+# date in formato gg-mm-AA
+df_monday['CONSEGNA CLIENTE PIANIFICATA'] = df_monday['CONSEGNA CLIENTE PIANIFICATA'].dt.strftime('%d-%m-%Y')
+df_monday['DATA ORDINE'] = df_monday['DATA ORDINE'].dt.strftime('%d-%m-%Y')
+df_monday['VERIFICA LT'] = df_monday['VERIFICA LT'].dt.strftime('%d-%m-%Y')
+
+
 # salvataggio su excel del file df_raw (Monday processato)
 st.header('Salvataggio file Monday processato', divider='blue')
 
@@ -98,14 +106,13 @@ def to_excel_bytes(df):
     return output.getvalue()
 
 # Crea il bottone per scaricare file filtrato
-monday_processato = to_excel_bytes(df_raw)
+monday_processato = to_excel_bytes(df_monday)
 st.download_button(
     label="📥 Scarica Monday processato",
     data=monday_processato,
     file_name='monday_processato.xlsx',
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
-
 
 
 
@@ -246,10 +253,6 @@ def calcola_data_target(row):
         return pd.NaT
     return data_consegna - giorni * custom_bday
 
-#df_raw["DATA TARGET"] = df_raw.apply(calcola_data_target, axis=1)
-
-
-
 
 zip_buffer = BytesIO()
 
@@ -272,13 +275,13 @@ with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         
         # Crea excel in memoria, formatta le colonne data
         excel_buffer = BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter', datetime_format='yyyy-mm-dd') as writer:
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter', datetime_format='dd-mm-yyyy') as writer: #'yyyy-mm-dd'
             df_addetto_sub.to_excel(writer, index=False, sheet_name='Foglio1')
             
             # Applica la formattazione senza ora alle colonne data
             workbook  = writer.book
             worksheet = writer.sheets['Foglio1']
-            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd'})
+            date_format = workbook.add_format({'num_format': 'dd-mm-yyyy'}) #yyyy-mm-dd
             for col_idx, col_name in enumerate(df_addetto_sub.columns):
                 if col_name in ["CONSEGNA CLIENTE PIANIFICATA", "DATA ORDINE", "DATA TARGET"]:
                     worksheet.set_column(col_idx, col_idx, 15, date_format)
